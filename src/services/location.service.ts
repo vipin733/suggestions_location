@@ -3,8 +3,7 @@ import LocationModel from '@/models/locations.model';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as csv from 'fast-csv';
-import { Request } from 'express';
-import { isNumber } from '@/utils/util';
+import { isEmpty, isNumber } from '@/utils/util';
 import { NODE_ENV } from '@config';
 
 class LocationService {
@@ -32,10 +31,10 @@ class LocationService {
    * @description check if csv data inserted or not if not then insert
    */
   public async importCSV(): Promise<boolean> {
-    const locationsAlreadyInseted = await LocationModel.countDocuments();
-    console.log('locationsAlreadyInseted', locationsAlreadyInseted);
+    const locationsAlreadyInserted = await LocationModel.countDocuments();
+    console.log('locations Already Inserted -> ' + locationsAlreadyInserted);
 
-    if (!locationsAlreadyInseted) {
+    if (!locationsAlreadyInserted) {
       let locations = await this.readFiles();
       if (NODE_ENV == 'test') {
         locations = locations.slice(0, 10);
@@ -51,8 +50,15 @@ class LocationService {
    * @returns {LocationRequest} locationRequest
    * @description validate query inpurt and prepare input
    */
-  public validateAndGetQueryInput(req: Request): LocationRequest {
-    const query = req.query;
+  public validateAndGetQueryInput(query: any): LocationRequest {
+    if (typeof query !== 'object') {
+      throw new Error('invalid request');
+    }
+
+    if (isEmpty(query)) {
+      throw new Error('invalid request');
+    }
+
     const locationRequest: LocationRequest = {
       query: query.q ? String(query.q) : null,
       latitude: isNumber(String(query.latitude)) ? Number(query.latitude) : 0,
@@ -90,10 +96,10 @@ class LocationService {
   }
 
   /**
-   * @method readFiles
-   * @param {Request}  req
-   * @returns {LocationDB[]} locations
-   * @description  read csv data
+   * @method makeResponseData
+   * @param {LocationDB[]}  locationsDB
+   * @returns {Location[]} locations
+   * @description  return user response
    */
   private makeResponseData(locationsDB: LocationDB[]): Location[] {
     const locations: Location[] = [];

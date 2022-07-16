@@ -1,10 +1,9 @@
 import compression from 'compression';
 import express from 'express';
 import { connect, set } from 'mongoose';
-import { NODE_ENV, PORT } from '@config';
+import { NODE_ENV, PORT, limiter } from '@config';
 import { dbConnection } from '@databases';
 import { Routes } from '@interfaces/routes.interface';
-import errorMiddleware from '@middlewares/error.middleware';
 import LocationService from '@services/location.service';
 import Mongoose from 'mongoose';
 
@@ -25,7 +24,6 @@ class App {
     }
     this.initializeMiddlewares();
     this.initializeRoutes(routes);
-    this.initializeErrorHandling();
   }
 
   public listen() {
@@ -41,9 +39,15 @@ class App {
     return this.app;
   }
 
+  public useMiddleware() {
+    return this.app;
+  }
+
   public async disconnectToDatabase() {
-    await this.dropTable();
-    await Mongoose.disconnect();
+    if (Mongoose.connection.readyState) {
+      await this.dropTable();
+      await Mongoose.disconnect();
+    }
   }
 
   public async dropTable() {
@@ -65,10 +69,10 @@ class App {
   }
 
   private initializeMiddlewares() {
+    this.app.use(limiter);
     this.app.use(compression());
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
-    this.app.use(express.static(__dirname + '/assets'));
   }
 
   private initializeRoutes(routes: Routes[]) {
@@ -80,10 +84,6 @@ class App {
   public async initializeDBData() {
     await this.locationService.importCSV();
     return true;
-  }
-
-  private initializeErrorHandling() {
-    this.app.use(errorMiddleware);
   }
 }
 

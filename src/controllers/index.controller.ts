@@ -1,19 +1,14 @@
 import LocationService from '@/services/location.service';
 import { isEmpty } from '@/utils/util';
-import { NextFunction, Request, Response } from 'express';
-
+import { Request, Response } from 'express';
 class IndexController {
   public locationService = new LocationService();
 
-  public index = async (_: Request, res: Response, next: NextFunction) => {
-    try {
-      res.status(200).json({ data: 'ok' });
-    } catch (error) {
-      next(error);
-    }
+  public index = async (_: Request, res: Response) => {
+    return res.status(200).json({ data: 'ok' });
   };
 
-  public suggestions = async (req: Request, res: Response, next: NextFunction) => {
+  public suggestions = async (req: Request, res: Response) => {
     try {
       //if query is empty
       const query = req.query;
@@ -22,7 +17,7 @@ class IndexController {
       }
 
       //vallidating the request input
-      const locationRequest = this.locationService.validateAndGetQueryInput(req);
+      const locationRequest = this.locationService.validateAndGetQueryInput(query);
 
       //if no query input for search
       if (!locationRequest.query) {
@@ -32,7 +27,7 @@ class IndexController {
       const findAllLocationssData = await this.locationService.findAllLocations(locationRequest);
       res.status(200).json(findAllLocationssData);
     } catch (error) {
-      next(error);
+      res.status(500).json({ message: 'server error' });
     }
   };
 }
